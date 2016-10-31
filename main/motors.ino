@@ -2,7 +2,7 @@
 
 DRV8835MotorShield motors;
 
-const int LED = 12;
+const int INDICATOR = 12;
 
 const int tol = 30;//change later
 const int pins[4] = {A0, A1, A2, A3}; //LL, LR, RL, RR
@@ -33,41 +33,39 @@ void getAverage(int vals[]){
   vals[3] = RR / 10;
 }
 
-void setup() {
+void calibrateMotors(){
   for(int i = 0; i < (sizeof pins)/(sizeof pins[0]); i++)
     pinMode(pins[i], INPUT);
-  
-  Serial.begin(9600);
 
-  pinMode(LED, OUTPUT);
+  pinMode(INDICATOR, OUTPUT);
 
   int vals[4];
   
   delay(1000);
 
   for(int i = 0; i<5; i++){
-  digitalWrite(LED, HIGH);
+  digitalWrite(INDICATOR, HIGH);
   delay(100);
-  digitalWrite(LED, LOW);
+  digitalWrite(INDICATOR, LOW);
   delay(100);
   };
   
   Serial.print("BLACK... ");
-  digitalWrite(LED, HIGH);
+  digitalWrite(INDICATOR, HIGH);
   getAverage(vals);
   for(int i = 0; i < 4; i++)
   {
     blacks[i] = vals[i];
     Serial.println(blacks[i]);
   }
-  digitalWrite(LED, LOW);
+  digitalWrite(INDICATOR, LOW);
   
   Serial.println("COMPLETE");
   
   delay(3000);
   Serial.print("WHITE... ");
   
-  digitalWrite(LED, HIGH);
+  digitalWrite(INDICATOR, HIGH);
   getAverage(vals);
   for(int i = 0; i < 4; i++)
   {
@@ -75,30 +73,32 @@ void setup() {
     Serial.println(whites[i]);
   }
   Serial.println("COMPLETE");
-  digitalWrite(LED, LOW);
+  digitalWrite(INDICATOR, LOW);
+  
+  delay(5000);
+  
+  // initialize timer1 
+  noInterrupts();           // disable all interrupts
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1  = 0;
 
-  delay(8000);
+  OCR1A = 31250;            // compare match register 16MHz/256/2Hz
+  TCCR1B |= (1 << WGM12);   // CTC mode
+  TCCR1B |= (1 << CS12);    // 256 prescaler 
+  TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
+  interrupts();             // enable all interrupts
 }
 
-int compare(int n1, int n2){
-  int a = analogRead(pins[n1]);
-  int b = analogRead(pins[n2]);
-  if(abs(a - blacks[n1]) < tol && abs(b - blacks[n2]) < tol)
-    return 1;
-  else if(abs(a - whites[n1]) < tol && abs(b - whites[n2]) < tol)
-    return -1;
-  else
-    return 0;
-}
-
-void loop() {
+int speedLeft = FWD, speedRight = FWD;
+void setMotors(){
   //read in sensor values for photoresistor LL, LR, RL, RR and value for mode
   int LL = analogRead(pins[0]);
   int LR = analogRead(pins[1]);
   int RL = analogRead(pins[2]);
   int RR = analogRead(pins[3]);
   
-  for(int i=0; i<4; i++)
+  /*for(int i=0; i<4; i++)
   {
     Serial.print(blacks[i]);
     Serial.print(", ");
@@ -121,20 +121,28 @@ void loop() {
   
   Serial.print(compare(0, 1));
   Serial.print(", ");
-  Serial.println(compare(2, 3));
-  
-  int speedLeft = FWD;
-  int speedRight = FWD;
-  
-  speedLeft += compare(0, 1) * TURN;
-  speedRight += compare(2, 3) * TURN;
+  Serial.println(compare(2, 3));*/
   
   //read in the value of "mode" here
-  
-  speedLeft /= mode;//Recalculate motor speeds
-  speedRight /= mode; 
-  
-  motors.setSpeeds(speedLeft, speedRight);
+
+  cli();
+  speedLeft = (FWD + compare(0, 1) * TURN) / mode;
+  speedRight = (FWD + compare(2, 3) * TURN) / mode;
+  sei();
 }
 
+int compare(int n1, int n2){
+  int a = analogRead(pins[n1]);
+  int b = analogRead(pins[n2]);
+  if(abs(a - blacks[n1]) < tol && abs(b - blacks[n2]) < tol)
+    return 1;
+  else if(abs(a - whites[n1]) < tol && abs(b - whites[n2]) < tol)
+    return -1;
+  else
+    return 0;
+}
+
+ISR(TIMER1_COMPA_vect) {
+  motors.setSpeeds(speedLeft, speedRight);
+}
 
