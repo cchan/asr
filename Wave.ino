@@ -7,6 +7,7 @@ int pins[8] = {6,7,8,9,10,11,12,13};
 void setup() {
   for(int i = 0; i < 8; i++)
     pinMode(pins[i], OUTPUT);
+
   Serial.begin(9600);
   
   cli();//stop interrupts
@@ -53,13 +54,14 @@ int notes[] = {440};
 
 void playNote(int freq, int del){
   cli();
-  OCR2A = 16000000/freq/300;// = (16*10^6) / (250hz*256) - 1 (must be <256)
+  Serial.println(freq);
+  OCR2A = 16000000/freq/515;// = (16*10^6) / (250hz*256) - 1 (must be <256)
   sei();
   delay(del);
 }
 
 void loop(){
-  for(int i = 0; i < sizeof notes; i++)
+  for(int i = 0; i < (sizeof notes)/(sizeof notes[0]); i++)
     playNote(notes[i], 500);
 }
 
