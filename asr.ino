@@ -81,14 +81,9 @@ void delayWhile(int ms, void (*cb)(void)){
   cb();
 }
 
-int i = 0;
 void loop() {
-  for(int i = 0; i < (sizeof notes)/(sizeof notes[0]); i++){
-    setNote(notes[i].freq);
-    delayWhile(notes[i].len, setMotors);
-    stopPlaying();
-    delay(1);
-  }
+  setNote(readFreq());
+  setMotors();
 }
 
 

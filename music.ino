@@ -4,9 +4,38 @@ const int musicIn = A5;
 
 bool playing = false;
 
+const int PRGreyScale = A5;
+
+const int greyScales[8] = {737, 727, 712, 693, 658, 638, 623, 615};
+const int Notes[8] = {262, 294, 330, 349, 392, 440, 494, 523};
+
+int readFreq()
+{
+    int valueRN = analogRead(PRGreyScale);
+    //some kind of play notes thing that's like playNotes(Notes[n])
+
+    int minDiff = abs(greyScales[0] - valueRN);
+    int minIndex = 0;
+
+    for(int i = 0; i < 8; i++)
+      if(minDiff > abs(greyScales[i] - valueRN)){
+        minDiff = abs(greyScales[i] - valueRN);
+        minIndex = i;
+      }
+
+    Serial.print(valueRN);
+    Serial.print(" vs ");
+    Serial.println(greyScales[minIndex]);
+
+    return Notes[minIndex];
+}
+
+
+
 void setupMusic(){
   for(int i = 0; i < 8; i++)
     pinMode(musicOut[i], OUTPUT);
+  pinMode(PRGreyScale, INPUT);
   
   cli();//stop interrupts
 
