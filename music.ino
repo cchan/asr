@@ -4,6 +4,9 @@ const int musicIn = A5;
 
 bool playing = false;
 
+const int greyscaleTol = 9;
+int prevValue = 0;
+
 const int PRGreyScale = A5;
 
 const int greyScales[8] = {737, 727, 712, 693, 658, 638, 623, 615};
@@ -11,7 +14,21 @@ const int Notes[8] = {262, 294, 330, 349, 392, 440, 494, 523};
 
 int readFreq()
 {
-    int valueRN = analogRead(PRGreyScale);
+  // H Y S T E R E S I S kek
+  int valueRN = 0;
+  for(int i = 0; i < 10; i++){
+    valueRN += analogRead(PRGreyScale);
+    for(int j = 0; j < 400; j++);
+  }
+  valueRN /= 10;
+
+    
+    Serial.println(valueRN);
+    if(abs(prevValue - valueRN) < greyscaleTol)
+      valueRN = prevValue;
+    else
+      prevValue = valueRN;
+    
     //some kind of play notes thing that's like playNotes(Notes[n])
 
     int minDiff = abs(greyScales[0] - valueRN);
@@ -23,11 +40,11 @@ int readFreq()
         minIndex = i;
       }
 
-    Serial.print(valueRN);
-    Serial.print(" vs ");
-    Serial.println(greyScales[minIndex]);
+    //Serial.print(valueRN);
+    //Serial.print(" vs ");
+    //Serial.println(greyScales[minIndex]);
 
-    return Notes[minIndex];
+    return Notes[minIndex] * 2;
 }
 
 
